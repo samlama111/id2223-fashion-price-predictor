@@ -1,2 +1,3 @@
 Scrapy
 grailed_api
+polars
