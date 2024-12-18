@@ -1,3 +1,5 @@
 Scrapy
 grailed_api
 polars
+google-generativeai
+python-dotenv

@@ -1,8 +1,16 @@
+import os
+
 import polars as pl
+import google.generativeai as genai
 from grailed_api import GrailedAPIClient
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Premade client from https://github.com/pznamir00/Grailed-API
 client = GrailedAPIClient()
+# This and the embed_text function are taken from https://ai.google.dev/gemini-api/docs/embeddings#generate-embeddings
+genai.configure(api_key=os.environ["GOOGLE_AI_STUDIO_API_KEY"])
 
 def get_latest_sold_products(no_of_hits=100):
     # Per default, includes only Men's products and all brands/items
@@ -28,7 +36,15 @@ def filter_item_keys(product, relevant_labels):
 def dict_to_polars(products):
     return pl.DataFrame(products)
 
-if __name__ == "__main__":
+def embed_text(text):
+    # Embeddings are free, as defined at https://ai.google.dev/pricing#text-embedding004
+    result = genai.embed_content(
+            model="models/text-embedding-004",
+            content=text)
+
+    return result['embedding']
+
+def pipeline():
     no_of_hits = 100
     products = get_latest_sold_products(no_of_hits)
     
@@ -44,19 +60,37 @@ if __name__ == "__main__":
     filtered_products = [filter_item_keys(product, relevant_labels) for product in products]
     
     # For now the designers are represented using a joined string
-    primitive_products = [{**product, 'designers': '<sep>'.join([designer['name'] for designer in product['designers']])} 
+    # primitive_products = [{**product, 'designers': '<sep>'.join([designer['name'] for designer in product['designers']])} 
+    primitive_products = [{**product, 'designers': ' '.join([designer['name'] for designer in product['designers']])} 
                           for product in filtered_products]
-    # print(primitive_products[0])
+    
+    # Combine relevant columns (designers and title)
+    enriched_products = [{**product, 'designers_title': f"{product['designers']}: {product['title']}"} 
+                          for product in primitive_products]
         
     # Convert to polars df
-    df = dict_to_polars(primitive_products)
-    print(df)
+    df = dict_to_polars(enriched_products)
     
-    # Clean the df, etc.
     # Add expectation that sold_price > 0 in all rows
     assert df.filter(pl.col('sold_price') <= 0).is_empty()
     # TODO: Check that no column has any null values
 
+    # Clean the df, etc.
+    # Drop unused columns
+    df = df.drop(['designers', 'title'])
+    
     # TODO: Represent categorical variables (we will most likely need a feature store for this, since we need to store the mappings)
-    # IMO, let's represent designers, title & (most likely) category_path_size cat. vars as embeddings
-    # condition we can represent using one-hot encoding or as an ordinal number
+    # For now let's only take into account designers_title
+    # In future, account for category_path_size (as embeddings) and potentially separate embeddings for designers and title
+    # and 'condition' using one-hot encoding or as an ordinal number
+    df = df.with_columns(
+        pl.col('designers_title')
+        .map_elements(embed_text, return_dtype=pl.List(pl.Float64))
+        .alias('designers_title_embedding')
+    )
+    print(df)
+    
+    # TODO: Store the df in a feature store
+    
+if __name__ == "__main__":
+    pipeline()
