@@ -51,8 +51,8 @@ def pipeline():
     ## Filter out keys we don't
     # Not needed are: price, badges, bumped_at, dropped??, marketplace?, price_doprs, price_i??, price_updated_at, traits, user, shipping
     # Ones we could consider are: buynow, category_path_size, category, color, location, makeoffer, traits, _rankingInfo?
-    # Should haves: description, strata, heat_recency?, sold_at    
-    practical_labels = ['id', 'created_at']
+    # Should haves: description, strata, heat_recency?    
+    practical_labels = ['id', 'created_at', 'sold_at']
     X_labels = ['designers', 'title', 'condition', 'category_path_size']
     Y_label = 'sold_price'
     relevant_labels = practical_labels + X_labels + [Y_label]
@@ -71,9 +71,16 @@ def pipeline():
     # Convert to polars df
     df = dict_to_polars(enriched_products)
     
+    # Change created_at and sold_at to DateTime
+    df = df.with_columns(
+        pl.col('created_at').cast(pl.Datetime),
+        pl.col('sold_at').cast(pl.Datetime)
+    )
+    
     # Add expectation that sold_price > 0 in all rows
     assert df.filter(pl.col('sold_price') <= 0).is_empty()
     # TODO: Check that no column has any null values
+    # TODO: Check that created_at and sold_at are not null, are in the past and of DateTime type
 
     # Clean the df, etc.
     # Drop unused columns
@@ -85,12 +92,12 @@ def pipeline():
     # and 'condition' using one-hot encoding or as an ordinal number
     df = df.with_columns(
         pl.col('designers_title')
-        .map_elements(embed_text, return_dtype=pl.List(pl.Float64))
+        .map_elements(embed_text, return_dtype=pl.List(pl.Float32))
         .alias('designers_title_embedding')
     )
     print(df)
     
-    # TODO: Store the df in a feature store
+    return df
     
 if __name__ == "__main__":
     pipeline()

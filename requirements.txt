@@ -3,3 +3,6 @@ grailed_api
 polars
 google-generativeai
 python-dotenv
+jupyterlab
+hopsworks[python]
+ipywidgets
