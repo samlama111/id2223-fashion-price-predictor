@@ -6,3 +6,5 @@ python-dotenv
 jupyterlab
 hopsworks[python]
 ipywidgets
+scikit-learn
+xgboost

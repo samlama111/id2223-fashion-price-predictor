@@ -44,9 +44,10 @@ def embed_text(text):
 
     return result['embedding']
 
-def pipeline():
-    no_of_hits = 100
-    products = get_latest_sold_products(no_of_hits)
+def pipeline(no_of_hits=100):
+    products = get_latest_sold_products(no_of_hits=no_of_hits)
+    # Check that we got the right number of products
+    assert len(products) == no_of_hits
     
     ## Filter out keys we don't
     # Not needed are: price, badges, bumped_at, dropped??, marketplace?, price_doprs, price_i??, price_updated_at, traits, user, shipping
