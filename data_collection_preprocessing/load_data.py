@@ -32,15 +32,30 @@ def filter_item_keys(product, relevant_labels):
 def dict_to_polars(products):
     return pl.DataFrame(products)
 
+def item_condition_to_ordinal(condition):
+    # is_worn -> 0, is_used -> 1, is_gently_used -> 2, is_new -> 3
+    if condition == 'is_worn':
+        return 0
+    elif condition == 'is_used':
+        return 1
+    elif condition == 'is_gently_used':
+        return 2
+    elif condition == 'is_new':
+        return 3
+    else:
+        raise ValueError(f"Invalid condition: {condition}")
+
 def pipeline(no_of_hits=100):
     products = get_latest_sold_products(no_of_hits=no_of_hits)
     # Check that we got the right number of products
-    assert len(products) == no_of_hits
+    assert len(products) == no_of_hits, f"Expected {no_of_hits} products, got {len(products)}"
     
     ## Filter out keys we don't need or are out of scope (e.g. user info, etc.)
     practical_labels = ['id', 'sold_at']
-    X_labels = ['designers', 'title', 'subcategory', 'category', 'condition', 'description', 'size', 'color']
-    Y_label = 'sold_price'
+    # Consider using the cover image (and representing it as a embedding vector)
+    # Consider using designer_names (separated by 'x') instead of designers
+    X_labels = ['designers', 'title', 'category_path', 'condition', 'description', 'size', 'color']
+    Y_label = 'sold_price' 
     relevant_labels = practical_labels + X_labels + [Y_label]
         
     filtered_products = [filter_item_keys(product, relevant_labels) for product in products]
@@ -59,7 +74,6 @@ def pipeline(no_of_hits=100):
     
     # Cast time columns to DateTime
     df = df.with_columns(
-        pl.col('created_at').cast(pl.Datetime),
         pl.col('sold_at').cast(pl.Datetime)
     )
     
