@@ -1,7 +1,4 @@
-import os
-
 import polars as pl
-import google.generativeai as genai
 from grailed_api import GrailedAPIClient
 from dotenv import load_dotenv
 
@@ -9,8 +6,6 @@ load_dotenv()
 
 # Premade client from https://github.com/pznamir00/Grailed-API
 client = GrailedAPIClient()
-# This and the embed_text function are taken from https://ai.google.dev/gemini-api/docs/embeddings#generate-embeddings
-genai.configure(api_key=os.environ["GOOGLE_AI_STUDIO_API_KEY"])
 
 def get_latest_sold_products(no_of_hits=100):
     # Per default, includes only Men's products and all brands/items
@@ -21,6 +16,7 @@ def get_latest_sold_products(no_of_hits=100):
     )
     return products[no_of_hits:] # First no_of_hits entries are the most recent, not sold
 
+# TODO: Fix this
 def get_latest_product():
     # Per default, includes only Men's products and all brands/items
     products = client.find_products(
@@ -36,25 +32,14 @@ def filter_item_keys(product, relevant_labels):
 def dict_to_polars(products):
     return pl.DataFrame(products)
 
-def embed_text(text):
-    # Embeddings are free, as defined at https://ai.google.dev/pricing#text-embedding004
-    result = genai.embed_content(
-            model="models/text-embedding-004",
-            content=text)
-
-    return result['embedding']
-
 def pipeline(no_of_hits=100):
     products = get_latest_sold_products(no_of_hits=no_of_hits)
     # Check that we got the right number of products
     assert len(products) == no_of_hits
     
-    ## Filter out keys we don't
-    # Not needed are: price, badges, bumped_at, dropped??, marketplace?, price_doprs, price_i??, price_updated_at, traits, user, shipping
-    # Ones we could consider are: buynow, category_path_size, category, color, location, makeoffer, traits, _rankingInfo?
-    # Should haves: description, strata, heat_recency?    
-    practical_labels = ['id', 'created_at', 'sold_at']
-    X_labels = ['designers', 'title', 'condition', 'category_path_size']
+    ## Filter out keys we don't need or are out of scope (e.g. user info, etc.)
+    practical_labels = ['id', 'sold_at']
+    X_labels = ['designers', 'title', 'subcategory', 'category', 'condition', 'description', 'size', 'color']
     Y_label = 'sold_price'
     relevant_labels = practical_labels + X_labels + [Y_label]
         
@@ -72,7 +57,7 @@ def pipeline(no_of_hits=100):
     # Convert to polars df
     df = dict_to_polars(enriched_products)
     
-    # Change created_at and sold_at to DateTime
+    # Cast time columns to DateTime
     df = df.with_columns(
         pl.col('created_at').cast(pl.Datetime),
         pl.col('sold_at').cast(pl.Datetime)
@@ -86,19 +71,7 @@ def pipeline(no_of_hits=100):
     # Clean the df, etc.
     # Drop unused columns
     df = df.drop(['designers', 'title'])
-    
-    # TODO: Represent categorical variables (we will most likely need a feature store for this, since we need to store the mappings)
-    # For now let's only take into account designers_title
-    # In future, account for category_path_size (as embeddings) and potentially separate embeddings for designers and title
-    # and 'condition' using one-hot encoding or as an ordinal number
-    df = df.with_columns(
-        pl.col('designers_title')
-        .map_elements(embed_text, return_dtype=pl.List(pl.Float32))
-        .alias('designers_title_embedding')
-    )
+
     print(df)
     
     return df
-    
-if __name__ == "__main__":
-    pipeline()
