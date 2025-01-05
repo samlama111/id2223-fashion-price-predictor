@@ -12,10 +12,12 @@ def get_latest_sold_products(no_of_hits=100):
     # Per default, includes only Men's products and all brands/items
     products = client.find_products(
         sold=True,
-        # page=1,
+        page=0,
         hits_per_page=no_of_hits,
     )
-    return products[no_of_hits:] # First no_of_hits entries are the most recent, not sold
+    products_found = len(products)
+    no_sold_products = int(products_found / 2)
+    return products[no_sold_products:] # First half of entries is the most recent items, not sold ones
 
 # TODO: Fix this, could be useful for demoing
 def get_latest_product():
@@ -48,8 +50,6 @@ def item_condition_to_ordinal(condition):
 
 def pipeline(no_of_hits=100):
     products = get_latest_sold_products(no_of_hits=no_of_hits)
-    # Check that we got the right number of products
-    assert len(products) == no_of_hits, f"Expected {no_of_hits} products, got {len(products)}"
     
     ## Filter out keys we don't need or are out of scope (e.g. user info, etc.)
     practical_labels = ['id', 'sold_at']
@@ -98,6 +98,6 @@ def pipeline(no_of_hits=100):
     # Drop unused columns
     df = df.drop(['designers', 'title'])
 
-    print(df)
+    # print(df)
     
     return df
