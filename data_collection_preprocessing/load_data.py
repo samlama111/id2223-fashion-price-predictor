@@ -1,4 +1,5 @@
 import polars as pl
+from datetime import datetime
 from grailed_api import GrailedAPIClient
 from dotenv import load_dotenv
 
@@ -16,7 +17,7 @@ def get_latest_sold_products(no_of_hits=100):
     )
     return products[no_of_hits:] # First no_of_hits entries are the most recent, not sold
 
-# TODO: Fix this
+# TODO: Fix this, could be useful for demoing
 def get_latest_product():
     # Per default, includes only Men's products and all brands/items
     products = client.find_products(
@@ -77,10 +78,21 @@ def pipeline(no_of_hits=100):
         pl.col('sold_at').cast(pl.Datetime)
     )
     
+    # For now, just drop any items with null values
+    df = df.drop_nulls()
+    
     # Add expectation that sold_price > 0 in all rows
     assert df.filter(pl.col('sold_price') <= 0).is_empty()
-    # TODO: Check that no column has any null values
-    # TODO: Check that created_at and sold_at are not null, are in the past and of DateTime type
+    # Check that no column has any null values
+    df_missing = (
+        df.filter(
+            pl.any_horizontal(pl.all().is_null())
+        )
+    )
+    assert df_missing.is_empty()
+    # Check that sold_at is not null, is in the past and of DateTime type
+    current_time = datetime.now()
+    assert df.filter(pl.col('sold_at') >= current_time).is_empty()
 
     # Clean the df, etc.
     # Drop unused columns
