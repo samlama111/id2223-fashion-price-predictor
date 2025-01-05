@@ -24,7 +24,7 @@ def __embed_text(documents: list[str]) -> list[list[float]]:
     return embeddings_list
 
 
-def __get_latest_sold_products(no_of_hits=100):
+def get_latest_sold_products(no_of_hits=100):
     # Per default, includes only Men's products and all brands/items
     products = client.find_products(sold=True, hits_per_page=no_of_hits)
     return products[
@@ -56,7 +56,6 @@ def __item_condition_to_ordinal(condition):
         # Thought this was impossible, but apparently it's not
         warnings.warn(f"Invalid condition: {condition}")
         return None
-        # raise ValueError(f"Invalid condition: {condition}")
 
 
 def transform_features(products: list[dict]) -> list[dict]:
@@ -65,7 +64,9 @@ def transform_features(products: list[dict]) -> list[dict]:
     print("embedding designer names")
     designer_names = [
         " ".join(
-            sorted([names.strip() for names in product["designer_names"].split("x")])
+            sorted(
+                [names.strip() for names in product["designer_names"].split("x")]
+            )  # from "Gucci x Ferrari x Hugo Boss" to "Gucci Ferrari Hugo Boss"
         )
         for product in products
     ]
@@ -83,13 +84,20 @@ def transform_features(products: list[dict]) -> list[dict]:
     hashtags = [" ".join(sorted(product["hashtags"])) for product in products]
     embedded_hashtags = __embed_text(hashtags)
 
+    print("embedding size")
+    sizes = [product["size"] for product in products]
+    embedded_sizes = __embed_text(sizes)
+
     for i, product in enumerate(products):
         transformed_product = {
             **product,
             "designer_names": embedded_designer_names[i],
             "description": embedded_description[i],
-            "embedded_hashtags": embedded_hashtags[i],
+            "hashtags": embedded_hashtags[i],
             "title": embedded_titles[i],
+            "size": embedded_sizes[i],
+            "category_path": hash(product["category_path"]) & 0xFFFFFFFF,
+            "color": hash(product["color"]) & 0xFFFFFFFF,
             "condition": __item_condition_to_ordinal(product["condition"]),
         }
         transformed_products.append(transformed_product)
@@ -97,7 +105,7 @@ def transform_features(products: list[dict]) -> list[dict]:
 
 
 def pipeline(no_of_hits=100):
-    products = __get_latest_sold_products(no_of_hits=no_of_hits)
+    products = get_latest_sold_products(no_of_hits=no_of_hits)
     # Check that we got the right number of products
     assert (
         len(products) == no_of_hits
@@ -128,12 +136,25 @@ def pipeline(no_of_hits=100):
     # Cast time columns to DateTime
     df = df.with_columns(pl.col("sold_at").cast(pl.Datetime))
     # Cast embedding columns to a list of floats
-    df = df.with_columns([
-        pl.col("designer_names").map_elements(lambda x: [float(v) for v in x], return_dtype=pl.List(pl.Float32)),
-        pl.col("description").map_elements(lambda x: [float(v) for v in x], return_dtype=pl.List(pl.Float32)),
-        pl.col("title").map_elements(lambda x: [float(v) for v in x], return_dtype=pl.List(pl.Float32)),
-        pl.col("embedded_hashtags").map_elements(lambda x: [float(v) for v in x], return_dtype=pl.List(pl.Float32))
-    ])
+    df = df.with_columns(
+        [
+            pl.col("designer_names").map_elements(
+                lambda x: [float(v) for v in x], return_dtype=pl.List(pl.Float32)
+            ),
+            pl.col("description").map_elements(
+                lambda x: [float(v) for v in x], return_dtype=pl.List(pl.Float32)
+            ),
+            pl.col("title").map_elements(
+                lambda x: [float(v) for v in x], return_dtype=pl.List(pl.Float32)
+            ),
+            pl.col("hashtags").map_elements(
+                lambda x: [float(v) for v in x], return_dtype=pl.List(pl.Float32)
+            ),
+            pl.col("size").map_elements(
+                lambda x: [int(v) for v in x], return_dtype=pl.List(pl.Float32)
+            ),
+        ]
+    )
 
     # For now, just drop any items with null values
     df = df.drop_nulls()
@@ -146,10 +167,6 @@ def pipeline(no_of_hits=100):
     # Check that sold_at is not null, is in the past and of DateTime type
     current_time = datetime.now()
     assert df.filter(pl.col("sold_at") >= current_time).is_empty()
-
-    # Clean the df, etc.
-    # Drop unused columns
-    # df = df.drop(["designers", "title"])
 
     print(df)
 

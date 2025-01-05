@@ -1,5 +1,6 @@
 # Custom
 catboost_info/
+price_predictor_model/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
