@@ -26,10 +26,14 @@ def __embed_text(documents: list[str]) -> list[list[float]]:
 
 def get_latest_sold_products(no_of_hits=100):
     # Per default, includes only Men's products and all brands/items
-    products = client.find_products(sold=True, hits_per_page=no_of_hits)
-    return products[
-        no_of_hits:
-    ]  # First no_of_hits entries are the most recent, not sold
+    products = client.find_products(
+        sold=True,
+        page=0,
+        hits_per_page=no_of_hits,
+    )
+    products_found = len(products)
+    no_sold_products = int(products_found / 2)
+    return products[no_sold_products:] # First half of entries is the most recent items, not sold ones
 
 
 def __filter_products(products: list[dict], keys) -> list[dict]:
