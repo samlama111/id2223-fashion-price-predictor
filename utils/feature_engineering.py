@@ -1,3 +1,4 @@
+import warnings
 import polars as pl
 from datetime import datetime
 from grailed_api import GrailedAPIClient
@@ -52,7 +53,10 @@ def __item_condition_to_ordinal(condition):
     elif condition == "is_new":
         return 3
     else:
-        raise ValueError(f"Invalid condition: {condition}")
+        # Thought this was impossible, but apparently it's not
+        warnings.warn(f"Invalid condition: {condition}")
+        return None
+        # raise ValueError(f"Invalid condition: {condition}")
 
 
 def transform_features(products: list[dict]) -> list[dict]:
@@ -123,6 +127,13 @@ def pipeline(no_of_hits=100):
 
     # Cast time columns to DateTime
     df = df.with_columns(pl.col("sold_at").cast(pl.Datetime))
+    # Cast embedding columns to a list of floats
+    df = df.with_columns([
+        pl.col("designer_names").map_elements(lambda x: [float(v) for v in x], return_dtype=pl.List(pl.Float32)),
+        pl.col("description").map_elements(lambda x: [float(v) for v in x], return_dtype=pl.List(pl.Float32)),
+        pl.col("title").map_elements(lambda x: [float(v) for v in x], return_dtype=pl.List(pl.Float32)),
+        pl.col("embedded_hashtags").map_elements(lambda x: [float(v) for v in x], return_dtype=pl.List(pl.Float32))
+    ])
 
     # For now, just drop any items with null values
     df = df.drop_nulls()
