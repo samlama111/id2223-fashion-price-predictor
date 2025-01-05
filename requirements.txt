@@ -8,3 +8,5 @@ hopsworks[python]
 ipywidgets
 scikit-learn
 xgboost
+matplotlib
+catboost
