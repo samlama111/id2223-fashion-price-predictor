@@ -1,10 +1,12 @@
 Scrapy
 grailed_api
 polars
-google-generativeai
+fastembed
 python-dotenv
 jupyterlab
 hopsworks[python]
 ipywidgets
 scikit-learn
 xgboost
+matplotlib
+catboost
