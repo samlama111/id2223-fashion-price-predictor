@@ -28,12 +28,11 @@ def get_latest_sold_products(no_of_hits=100):
     # Per default, includes only Men's products and all brands/items
     products = client.find_products(
         sold=True,
+        on_sale=False,
         page=0,
         hits_per_page=no_of_hits,
     )
-    products_found = len(products)
-    no_sold_products = int(products_found / 2)
-    return products[no_sold_products:] # First half of entries is the most recent items, not sold ones
+    return products
 
 
 def __filter_products(products: list[dict], keys) -> list[dict]:
