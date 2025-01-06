@@ -150,7 +150,7 @@ def pipeline(no_of_hits=100):
                 lambda x: [float(v) for v in x], return_dtype=pl.List(pl.Float32)
             ),
             pl.col("size").map_elements(
-                lambda x: [int(v) for v in x], return_dtype=pl.List(pl.Float32)
+                lambda x: [float(v) for v in x], return_dtype=pl.List(pl.Float32)
             ),
         ]
     )
