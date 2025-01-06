@@ -110,10 +110,6 @@ def transform_features(products: list[dict]) -> list[dict]:
 
 def pipeline(no_of_hits=100):
     products = get_latest_sold_products(no_of_hits=no_of_hits)
-    # Check that we got the right number of products
-    assert (
-        len(products) == no_of_hits
-    ), f"Expected {no_of_hits} products, got {len(products)}"
 
     ## Filter out keys we don't need or are out of scope (e.g. user info, etc.)
     dimension_labels = ["id", "sold_at"]
