@@ -34,8 +34,18 @@ def get_latest_sold_products(no_of_hits=100):
     )
     return products
 
+def get_latest_listed_products(no_of_hits=10):
+    # Per default, includes only Men's products and all brands/items
+    products = client.find_products(
+        sold=False,
+        on_sale=True,
+        page=0,
+        hits_per_page=no_of_hits,
+    )
+    return products
 
-def __filter_products(products: list[dict], keys) -> list[dict]:
+
+def filter_products(products: list[dict], keys) -> list[dict]:
     return [
         {key: product[key] for key in keys if key in product} for product in products
     ]
@@ -61,7 +71,7 @@ def __item_condition_to_ordinal(condition):
         return None
 
 
-def transform_features(products: list[dict]) -> list[dict]:
+def __transform_features(products: list[dict]) -> list[dict]:
     transformed_products = []
 
     print("embedding designer names")
@@ -106,34 +116,13 @@ def transform_features(products: list[dict]) -> list[dict]:
         transformed_products.append(transformed_product)
     return transformed_products
 
-
-def pipeline(no_of_hits=100):
-    products = get_latest_sold_products(no_of_hits=no_of_hits)
-
-    ## Filter out keys we don't need or are out of scope (e.g. user info, etc.)
-    dimension_labels = ["id", "sold_at"]
-    x_labels = [
-        "designer_names",
-        "description",
-        "title",
-        "hashtags",
-        "category_path",
-        "condition",
-        "size",
-        "color",
-        "followerno",
-        "userScore",
-    ]
-    y_label = ["sold_price"]
-    labels = dimension_labels + x_labels + y_label
-    filtered_products = __filter_products(products, labels)
-    transformed_products = transform_features(filtered_products)
+def engineering_all_features(products: list[dict], labels: list[str]):
+    filtered_products = filter_products(products, labels)
+    transformed_products = __transform_features(filtered_products)
 
     # Convert to polars df
     df = __dict_to_polars(transformed_products)
 
-    # Cast time columns to DateTime
-    df = df.with_columns(pl.col("sold_at").cast(pl.Datetime))
     # Cast embedding columns to a list of floats
     df = df.with_columns(
         [
@@ -154,6 +143,32 @@ def pipeline(no_of_hits=100):
             ),
         ]
     )
+    return df
+
+def pipeline(no_of_hits=100):
+    products = get_latest_sold_products(no_of_hits=no_of_hits)
+
+    ## Filter out keys we don't need or are out of scope (e.g. user info, etc.)
+    dimension_labels = ["id", "sold_at"]
+    x_labels = [
+        "designer_names",
+        "description",
+        "title",
+        "hashtags",
+        "category_path",
+        "condition",
+        "size",
+        "color",
+        "followerno",
+        "userScore",
+    ]
+    y_label = ["sold_price"]
+    labels = dimension_labels + x_labels + y_label
+
+    df = engineering_all_features(products, labels)
+    
+    # Cast time columns to DateTime
+    df = df.with_columns(pl.col("sold_at").cast(pl.Datetime))
 
     # For now, just drop any items with null values
     df = df.drop_nulls()
