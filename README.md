@@ -11,7 +11,9 @@ Created by Samuel Horacek (horacek@kth.se) and Eugene Park (epark@kth.se).
 
 ## Introduction and problem overview
 
-Grailed is a platform for buying and selling used fashion items. These fashion items can be designer garments, rare and archive pieces, or streetwear. What is often common for these items is that they are possibly not so easily found in stores, and thus the price is not so easily determined, since it can range from a few dollars to a few thousand.
+[Grailed](https://www.grailed.com/) is a platform for buying and selling used fashion items. These fashion items can be designer garments, rare and archive pieces, or streetwear. What is often common for these items is that they are possibly not so easily found in stores, and thus the price is not so easily determined, since it can range from a few dollars to a few thousand.
+
+![Grailed Website](./doc/grailed.png)
 
 Currently, there are million of live listings on the platform, and the number is growing. Every time a user wants to create a new listing, they have to fill out the relevant information about the item. This includes the brand, the size, the condition, color and others. Finally, a user has to set a price for the item. This can be tricky, and Grailed only provides a suggested price range, which can in some cases be quite inaccurate. This "Price range is calculated based on what most similar items recently sold for over the past few months (excluding shipping).". We think we can do better.
 
@@ -29,9 +31,10 @@ To train our model, we need to get the previously sold items. Since the Algolia 
 
 To train our model, we need to abstract the data into features. We have created a feature engineering pipeline that takes the raw data and transforms it into a suitable format.
 
-When selecting features, we were guided by our personal experience with the platform and by a [project](https://github.com/kirill-rubashevskiy/graildient-descent) we came across with a similar focus. 
+When selecting features, we were guided by our personal experience with the platform and by a [project](https://github.com/kirill-rubashevskiy/graildient-descent) we came across with a similar focus.
 
 We set on the following features, already present in the dataset:
+
 - `category_path`: The category path of the item, e.g. `accessories.hats`.
 - `color`: The color of the item, e.g. `Black`.
 - `condition`: The condition of the item, e.g. `is_new`.
@@ -52,13 +55,25 @@ Since a lot of these features are categorical, we had to come up with a way of r
 
 ## Architecture
 
+![Project Architecture](./doc/ID2223_Project_Architecture.drawio.png)
 
+Our project adheres to the recommended architecture and concepts covered in the lectures. As outlined above, we retrieve data from the Grailed website using the `grailed_api` Python module. The feature pipeline runs hourly, orchestrated by `GitHub Actions`, while our feature_backfill script can be triggered manually to populate the feature store.
+
+For the feature store, we chose `Hopsworks`, which serves as both a repository for features and a platform for hosting machine learning models. Our training and deployment scripts utilize the features stored in Hopsworks for model training and subsequently upload the trained models back to the platform. This approach allows us to reuse feature engineering logic and model transformations consistently across different scripts.
+
+The user interface for inference is hosted on `Hugging Face Spaces`, leveraging `Gradio`. Gradio enables us to implement both the prediction logic and UI using a single language—Python. The UI downloads the trained model and applies the same feature transformation scripts stored in Hopsworks. Upon receiving a user request, it generates a prediction and returns the estimated price to the user.
 
 ## Predicting prices
 
-### Evaluation 
+### Evaluation
 
-## Conclusion, future work
+## Conclusion
+
+The Grailed Fashion Price Predictor project allowed us to apply machine learning concepts in a practical, real-world scenario, improving our understanding of data pipelines, feature engineering, and model deployment.
+
+We faced several challenges, such as retrieving the data, designing effective feature transformations, and integrating multiple tools and platforms. Implementing a full pipeline from data collection to prediction allowed us to see the significance of scalability and maintainability in building practical machine learning applications.
+
+Through this project, we gained hands-on experience with tools like Hopsworks, Gradio, and GitHub Actions, and gave us a stronger grasp of how to deploy end-to-end ML solutions.
 
 ### Problems encountered
 
