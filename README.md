@@ -1,15 +1,15 @@
 # Grailed Fashion Price Predictor
 
+ID2223 final project - a Machine Learning (ML) pipeline for predicting the price of a fashion items listed on the online marketplace Grailed.
+
+Created by Samuel Horacek (horacek@kth.se) and Eugene Park (epark@kth.se).
+
 ## How to run
 
 1. Install dependencies, e.g. using `pip install -r requirements.txt`.
 2. Fill the `.env` file with required secrets, defined in the `.env.example` file.
 
 ## Introduction and problem overview
-
-For the ID2223 final project, we have created a Machine Learning (ML) pipeline for predicting the price of a fashion items listed on the online marketplace Grailed.
-
-The requirements for the project are as follows:
 
 Grailed is a platform for buying and selling used fashion items. These fashion items can be designer garments, rare and archive pieces, or streetwear. What is often common for these items is that they are possibly not so easily found in stores, and thus the price is not so easily determined, since it can range from a few dollars to a few thousand.
 
