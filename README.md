@@ -86,7 +86,7 @@ Due to the distribution of our target variable, which is heavily skewed to the l
 
 We have found our model to perform not far off the existing approaches. Our RMSLE of 0.75 is less than the 0.64 of an [alternative approach](https://github.com/kirill-rubashevskiy/graildient-descent/blob/main/README.md#experiment-results), but perfecting this model was not our primary goal.
 
-![Our predicted vs. actual sold prices](./doc/id2223_predicted_vs_actual.png)
+![Our predicted vs. actual sold prices](./doc/id2223_fashion_actual_vs_predicted.png)
 
 ## Conclusion, future work
 
