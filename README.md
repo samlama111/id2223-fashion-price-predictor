@@ -53,6 +53,8 @@ Since a lot of these features are categorical, we had to come up with a way of r
 - `condition` was represented using one-hot encoding.
 - `designer_names`, `description`, `title`, `hashtags` were represented using embeddings (using the [fastembed](https://github.com/qdrant/fastembed) library).
 
+We have found the `designer_names` and `title` to have the largest importance.
+
 ## Architecture
 
 ![Project Architecture](./doc/ID2223_Project_Architecture.drawio.png)
@@ -65,16 +67,33 @@ The user interface for inference is hosted on `Hugging Face Spaces`, leveraging 
 
 ## Predicting prices
 
-### Evaluation
+As our predictive model, we have chosen a `CatBoostRegressor` from the [CatBoost](https://catboost.ai/) library. It was chosen as it works well with categorical features, it is easy to see the influence of each feature on the prediction and its hyperparameters are easy to tune.
 
-## Conclusion
+We train the model on the training set, and then evaluate it on the test set (80-20 split). To prevent overfitting, we have used early stopping.
 
-The Grailed Fashion Price Predictor project allowed us to apply machine learning concepts in a practical, real-world scenario, improving our understanding of data pipelines, feature engineering, and model deployment.
+When tuning the model, we have looked into adjusting the number of trees (`iterations`), learning rate (`learning_rate`), depth of the trees (`depth`) and the loss function (`loss_function`).
+The first three are optimally chosen by the library, but we have also tried to adjust them to see if we can improve the model, without much success. Finally, we have used the `LogCosh` loss function, which helped us not to overshoot our predictions as much, in comparison to say `RMSE`.
 
-We faced several challenges, such as retrieving the data, designing effective feature transformations, and integrating multiple tools and platforms. Implementing a full pipeline from data collection to prediction allowed us to see the significance of scalability and maintainability in building practical machine learning applications.
+Finally, we have also looked at other models, such as `XGBRegressor` and `KNeighborsRegressor`, but we have found them harder to use and less performant than `CatBoost`. We suspect that they struggle more with our high-dimensional features (embeddings).
+
+In production (inference), we use the best performing model, chosen based on the RMSLE score on the test set. This is quite easy to do thanks to Hopsworks' model registry.
+
+### Evaluation 
+
+Due to the distribution of our target variable, which is heavily skewed to the left, we have used Mean Squared Logarithmic Error (MSLE) as our evaluation metric. To accompany it, we have used commonly used regression metrics, such as R² and MSE.
+
+![Price distribution of sold items](./doc/id2223_price_distribution.png)
+
+We have found our model to perform not far off the existing approaches. Our RMSLE of 0.75 is less than the 0.64 of an [alternative approach](https://github.com/kirill-rubashevskiy/graildient-descent/blob/main/README.md#experiment-results), but perfecting this model was not our primary goal.
+
+![Our predicted vs. actual sold prices](./doc/id2223_fashion_actual_vs_predicted.png)
+
+## Conclusion, future work
+
+The Grailed Fashion Price Predictor project was an opportunity for us to create an end-to-end ML pipeline, while solving a real-world problem that we ourselves have encountered.
+
+We faced several challenges, such as putting together a dataset, designing effective feature transformations, and integrating multiple tools and platforms. Implementing a full pipeline from data collection to prediction allowed us to see the significance and benefits of MLOps. Giving us experience with ML from a different perspective.
 
 Through this project, we gained hands-on experience with tools like Hopsworks, Gradio, and GitHub Actions, and gave us a stronger grasp of how to deploy end-to-end ML solutions.
 
-### Problems encountered
-
-### Future work
+We have found the project to be a great learning experience, and we hope to continue working on it in the future.
